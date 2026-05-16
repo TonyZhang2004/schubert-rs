@@ -3,8 +3,9 @@
 //! This crate computes in the Schubert basis of `CH^*(Gr(k,n), Z)`.  A
 //! [`Grassmannian`] fixes the ambient `k x (n-k)` rectangle, [`Partition`] values
 //! index Schubert classes `sigma_lambda`, and [`SchubertExpr`] stores sparse
-//! integral Schubert expansions.  Multiplication uses Pieri's rule for special
-//! classes and the Giambelli determinant for general classes.
+//! integral Schubert expansions.  Multiplication uses direct
+//! Littlewood-Richardson tableau counting for general products and Pieri's rule
+//! for special classes.
 //!
 //! ```
 //! use num_bigint::BigInt;
@@ -22,8 +23,10 @@
 
 mod errors;
 mod expr;
+#[cfg(test)]
 mod giambelli;
 mod grassmannian;
+mod littlewood_richardson;
 mod partition;
 mod pieri;
 
@@ -39,6 +42,31 @@ mod tests {
     use super::*;
     use num_bigint::BigInt;
     use num_traits::{One, Zero};
+
+    fn partitions(g: &Grassmannian) -> Vec<Partition> {
+        fn rec(
+            g: &Grassmannian,
+            row: usize,
+            max_part: u16,
+            current: &mut Vec<u16>,
+            out: &mut Vec<Partition>,
+        ) {
+            if row == g.k() {
+                out.push(Partition::new(current.clone(), g).unwrap());
+                return;
+            }
+
+            for part in (0..=max_part).rev() {
+                current.push(part);
+                rec(g, row + 1, part, current, out);
+                current.pop();
+            }
+        }
+
+        let mut out = Vec::new();
+        rec(g, 0, g.width() as u16, &mut Vec::new(), &mut out);
+        out
+    }
 
     #[test]
     fn grassmannian_validation_and_helpers() {
@@ -168,5 +196,127 @@ mod tests {
         assert_eq!(h.pow(4).unwrap().integral(&g).unwrap(), BigInt::one());
         assert_eq!(h.pow(5).unwrap().integral(&g).unwrap(), BigInt::zero());
         assert!(h.pow(5).unwrap().is_zero());
+    }
+
+    #[test]
+    fn littlewood_richardson_matches_giambelli_in_gr_2_4() {
+        let g = Grassmannian::new(2, 4).unwrap();
+        let all = partitions(&g);
+
+        for lambda in &all {
+            let expr = SchubertExpr::from_class(&g, lambda.clone());
+            for mu in &all {
+                let lr = expr.mul_class(mu).unwrap();
+                let giambelli = giambelli::multiply_expr_by_class(&expr, mu).unwrap();
+                assert_eq!(lr, giambelli, "lambda={lambda}, mu={mu}");
+            }
+        }
+    }
+
+    #[test]
+    fn littlewood_richardson_matches_giambelli_in_gr_3_5() {
+        let g = Grassmannian::new(3, 5).unwrap();
+        let all = partitions(&g);
+
+        for lambda in &all {
+            let expr = SchubertExpr::from_class(&g, lambda.clone());
+            for mu in &all {
+                let lr = expr.mul_class(mu).unwrap();
+                let giambelli = giambelli::multiply_expr_by_class(&expr, mu).unwrap();
+                assert_eq!(lr, giambelli, "lambda={lambda}, mu={mu}");
+            }
+        }
+    }
+
+    #[test]
+    fn littlewood_richardson_special_classes_match_pieri() {
+        let g = Grassmannian::new(3, 5).unwrap();
+
+        for lambda in partitions(&g) {
+            let expr = SchubertExpr::from_class(&g, lambda);
+            for r in 0..=g.width() {
+                let special = Partition::new(vec![r as u16], &g).unwrap();
+                let lr = expr.mul_class(&special).unwrap();
+                let pieri = expr.multiply_by_special(r as isize).unwrap();
+                assert_eq!(lr, pieri);
+            }
+        }
+    }
+
+    #[test]
+    fn littlewood_richardson_unit_and_overfull_products() {
+        let g = Grassmannian::new(2, 4).unwrap();
+        let sigma_2 = g.class(vec![2]).unwrap();
+        let one = Partition::new(vec![], &g).unwrap();
+        let top = g.top_partition().unwrap();
+
+        assert_eq!(sigma_2.mul_class(&one).unwrap(), sigma_2);
+        assert!(sigma_2.mul_class(&top).unwrap().is_zero());
+    }
+
+    #[test]
+    fn littlewood_richardson_counts_coefficients_above_one() {
+        let g = Grassmannian::new(3, 6).unwrap();
+        let lambda = Partition::new(vec![2, 1], &g).unwrap();
+        let mu = Partition::new(vec![2, 1], &g).unwrap();
+        let nu = Partition::new(vec![3, 2, 1], &g).unwrap();
+
+        let product = SchubertExpr::from_class(&g, lambda).mul_class(&mu).unwrap();
+
+        assert_eq!(product.coefficient(&nu), BigInt::from(2));
+    }
+
+    #[test]
+    fn littlewood_richardson_full_square_of_21_in_large_rectangle() {
+        let g = Grassmannian::new(4, 8).unwrap();
+        let sigma_21 = g.class(vec![2, 1]).unwrap();
+        let product = sigma_21.product(&sigma_21).unwrap();
+
+        let expected = [
+            (vec![4, 2], 1),
+            (vec![4, 1, 1], 1),
+            (vec![3, 3], 1),
+            (vec![3, 2, 1], 2),
+            (vec![3, 1, 1, 1], 1),
+            (vec![2, 2, 2], 1),
+            (vec![2, 2, 1, 1], 1),
+        ];
+
+        assert_eq!(product.term_count(), expected.len());
+        for (parts, coefficient) in expected {
+            let partition = Partition::new(parts, &g).unwrap();
+            assert_eq!(product.coefficient(&partition), BigInt::from(coefficient));
+        }
+    }
+
+    #[test]
+    fn littlewood_richardson_square_of_21_truncates_to_gr_3_6_rectangle() {
+        let g = Grassmannian::new(3, 6).unwrap();
+        let sigma_21 = g.class(vec![2, 1]).unwrap();
+        let product = sigma_21.product(&sigma_21).unwrap();
+
+        let expected = [(vec![3, 3], 1), (vec![3, 2, 1], 2), (vec![2, 2, 2], 1)];
+
+        assert_eq!(product.term_count(), expected.len());
+        for (parts, coefficient) in expected {
+            let partition = Partition::new(parts, &g).unwrap();
+            assert_eq!(product.coefficient(&partition), BigInt::from(coefficient));
+        }
+    }
+
+    #[test]
+    fn littlewood_richardson_mixed_product_has_four_hand_checked_outputs() {
+        let g = Grassmannian::new(3, 7).unwrap();
+        let sigma_22 = g.class(vec![2, 2]).unwrap();
+        let sigma_21 = g.class(vec![2, 1]).unwrap();
+        let product = sigma_22.product(&sigma_21).unwrap();
+
+        let expected = [vec![4, 3], vec![4, 2, 1], vec![3, 3, 1], vec![3, 2, 2]];
+
+        assert_eq!(product.term_count(), expected.len());
+        for parts in expected {
+            let partition = Partition::new(parts, &g).unwrap();
+            assert_eq!(product.coefficient(&partition), BigInt::one());
+        }
     }
 }

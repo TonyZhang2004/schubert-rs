@@ -1,4 +1,4 @@
-use crate::{giambelli, pieri, Grassmannian, Partition, Result, SchubertError};
+use crate::{littlewood_richardson, pieri, Grassmannian, Partition, Result, SchubertError};
 use num_bigint::BigInt;
 use num_traits::{One, Signed, Zero};
 use serde::{Deserialize, Serialize};
@@ -159,10 +159,11 @@ impl SchubertExpr {
         Ok(out)
     }
 
-    /// Multiply by one Schubert basis class `sigma_rhs` using Giambelli plus Pieri.
+    /// Multiply by one Schubert basis class `sigma_rhs` using the
+    /// Littlewood-Richardson rule.
     pub fn mul_class(&self, rhs: &Partition) -> Result<Self> {
         rhs.validate_for(&self.g)?;
-        giambelli::multiply_expr_by_class(self, rhs)
+        littlewood_richardson::multiply_expr_by_class(self, rhs)
     }
 
     /// Schubert product of two expressions in the same Grassmannian.

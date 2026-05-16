@@ -1,5 +1,9 @@
 # schubert-rs
 
+<p align="center">
+  <img src="assets/schubert-rs-logo.png" alt="schubert-rs logo" width="260">
+</p>
+
 Exact Schubert calculus for ordinary integral cohomology/Chow rings of type-A
 Grassmannians.
 
@@ -21,8 +25,8 @@ integral cohomology ring concentrated in even degrees via the cycle class map.
 - Stores Schubert expressions as sparse integral linear combinations with
   arbitrary-precision `BigInt` coefficients.
 - Multiplies Schubert classes and expressions exactly.
-- Implements multiplication using Pieri's rule for special classes and the
-  Giambelli determinant for general classes.
+- Implements multiplication using the Littlewood-Richardson rule for general
+  classes and Pieri's rule for special classes.
 - Integrates a class over the Grassmannian by extracting the coefficient of the
   top Schubert class.
 - Provides deterministic display output for partitions and Schubert expressions.
@@ -223,10 +227,26 @@ with `sigma_0 = 1` and out-of-range `sigma_r = 0`. The implementation expands
 this determinant by permutations. Each determinant term is then evaluated by
 successive Pieri multiplications.
 
-This gives exact multiplication of arbitrary Schubert expressions without
-storing a full multiplication table. The resulting structure constants are the
-classical Littlewood-Richardson coefficients for the Grassmannian Schubert
-basis.
+The initial implementation used this formula as its general multiplication
+engine. The crate now keeps Giambelli as an internal test oracle and uses direct
+Littlewood-Richardson tableau counting for general products.
+
+### Littlewood-Richardson
+
+The product of two Schubert basis classes has the form
+
+```text
+sigma_lambda sigma_mu = sum_nu c^nu_{lambda,mu} sigma_nu
+```
+
+where `nu` ranges over partitions inside the same `k x (n-k)` rectangle. The
+coefficient `c^nu_{lambda,mu}` is the Littlewood-Richardson coefficient, counted
+by semistandard tableaux of skew shape `nu / lambda` and content `mu` whose
+reading word is lattice/Yamanouchi.
+
+This crate computes those coefficients directly. It fills cells in reading-word
+order, top row to bottom row and right to left within each row, while enforcing
+semistandard row/column conditions and the lattice-prefix condition exactly.
 
 ### Example: `Gr(2,4)`
 
@@ -270,7 +290,8 @@ The current test suite covers:
 - Grassmannian validation and helper methods.
 - Partition validation and normalization.
 - Pieri multiplication in small Grassmannians.
-- Giambelli multiplication for non-special classes.
+- Littlewood-Richardson multiplication cross-checked against Giambelli.
+- Agreement between Littlewood-Richardson special-class products and Pieri.
 - Projective-space behavior for `Gr(1,n)`.
 - Commutativity, associativity, and positivity in `Gr(2,4)`.
 - Poincare duality pairing in `Gr(2,4)`.
@@ -280,9 +301,9 @@ The current test suite covers:
 ## Current Limitations
 
 - Only ordinary integral Schubert calculus for Grassmannians is implemented.
-- Products are computed by Pieri plus a determinant expansion, so very large `k`
-  can become expensive because the determinant expansion has `k!` terms.
-- There is no dedicated Littlewood-Richardson tableau implementation yet.
+- General products are computed by recursive Littlewood-Richardson tableau
+  counting, so large skew shapes can become expensive without future caching or
+  more specialized algorithms.
 - There is no quantum, equivariant, K-theoretic, or flag-variety API yet.
 - The public API is pre-`1.0` and may still change.
 
