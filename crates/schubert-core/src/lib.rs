@@ -1,5 +1,11 @@
 //! Exact Schubert calculus for ordinary integral cohomology of type-A Grassmannians.
 //!
+//! This crate computes in the Schubert basis of `CH^*(Gr(k,n), Z)`.  A
+//! [`Grassmannian`] fixes the ambient `k x (n-k)` rectangle, [`Partition`] values
+//! index Schubert classes `sigma_lambda`, and [`SchubertExpr`] stores sparse
+//! integral Schubert expansions.  Multiplication uses Pieri's rule for special
+//! classes and the Giambelli determinant for general classes.
+//!
 //! ```
 //! use num_bigint::BigInt;
 //! use schubert_core::Grassmannian;
@@ -9,6 +15,7 @@
 //! let sigma1 = g.class(vec![1])?;
 //! let ans = sigma1.pow(4)?;
 //! assert_eq!(ans.integral(&g)?, BigInt::from(2));
+//! assert_eq!(ans.to_string(), "2*sigma_(2,2)");
 //! # Ok(())
 //! # }
 //! ```
@@ -132,6 +139,25 @@ mod tests {
         let left = a.mul(&b).unwrap().mul(&c).unwrap();
         let right = a.mul(&b.mul(&c).unwrap()).unwrap();
         assert_eq!(left, right);
+    }
+
+    #[test]
+    fn expression_display_and_product_alias_are_ergonomic() {
+        let g = Grassmannian::new(2, 4).unwrap();
+        let sigma_1 = g.class(vec![1]).unwrap();
+        let sigma_2 = g.class(vec![2]).unwrap();
+
+        let square = sigma_1.product(&sigma_1).unwrap();
+        assert_eq!(square.to_string(), "sigma_(1,1) + sigma_(2)");
+        assert_eq!(square.term_count(), 2);
+        assert_eq!(sigma_1.clone() * sigma_1, square);
+
+        let mixed = square.checked_sub(&sigma_2).unwrap();
+        assert_eq!(mixed.to_string(), "sigma_(1,1)");
+        assert!(!mixed.is_one());
+        assert_eq!(SchubertExpr::one(&g).to_string(), "1");
+        assert!(SchubertExpr::one(&g).is_one());
+        assert_eq!(SchubertExpr::zero(&g).to_string(), "0");
     }
 
     #[test]

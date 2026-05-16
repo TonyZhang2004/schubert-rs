@@ -2,12 +2,31 @@ use crate::{Grassmannian, Result, SchubertError};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
+/// A partition indexing a Schubert class in a fixed Grassmannian rectangle.
+///
+/// Partitions are stored in normalized length-`k` form with trailing zeroes.
+/// Public constructors validate the usual Schubert-indexing conditions:
+/// weakly decreasing parts, at most `k` rows, and each part at most `n-k`.
+///
+/// ```
+/// use schubert_core::{Grassmannian, Partition};
+///
+/// # fn main() -> schubert_core::Result<()> {
+/// let g = Grassmannian::new(3, 7)?;
+/// let lambda = Partition::new(vec![3, 1], &g)?;
+/// assert_eq!(lambda.parts(), &[3, 1, 0]);
+/// assert_eq!(lambda.size(), 4);
+/// assert_eq!(lambda.to_string(), "(3,1)");
+/// # Ok(())
+/// # }
+/// ```
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Partition {
     parts: Vec<u16>,
 }
 
 impl Partition {
+    /// Validate and normalize a partition for the rectangle of `g`.
     pub fn new(parts: Vec<u16>, g: &Grassmannian) -> Result<Self> {
         Self::from_parts(parts, g.k(), g.width(), g.k(), g.n())
     }
@@ -62,14 +81,23 @@ impl Partition {
         Self { parts }
     }
 
+    /// Normalized parts, including trailing zeroes up to the ambient `k` rows.
     pub fn parts(&self) -> &[u16] {
         &self.parts
     }
 
+    /// The number of boxes `|lambda|`, equal to the codimension of
+    /// `sigma_lambda`.
     pub fn size(&self) -> usize {
         self.parts.iter().map(|&part| part as usize).sum()
     }
 
+    /// Whether this is the empty partition, indexing the multiplicative unit.
+    pub fn is_empty(&self) -> bool {
+        self.parts.iter().all(|&part| part == 0)
+    }
+
+    /// Whether this is the rectangular partition indexing the point class.
     pub fn is_top(&self, g: &Grassmannian) -> bool {
         self.parts.len() == g.k() && self.parts.iter().all(|&part| part as usize == g.width())
     }
