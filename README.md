@@ -10,9 +10,9 @@ Grassmannians.
 This repository currently contains the `schubert-core` Rust crate. It computes
 in the Schubert basis of
 
-```text
-CH^*(Gr(k,n), Z)
-```
+$$
+CH^\ast(\operatorname{Gr}(k,n), \mathbb{Z}).
+$$
 
 where `Gr(k,n)` is the Grassmannian of `k`-dimensional subspaces of an
 `n`-dimensional vector space. Over the complex numbers, this is the usual
@@ -181,20 +181,54 @@ a `k x (n-k)` rectangle. The corresponding Schubert classes
 the Grassmannian. The codimension of `sigma_lambda` is the number of boxes
 `|lambda|`.
 
+In formulas, the ambient space has complex dimension
+
+$$
+\dim_\mathbb{C} \operatorname{Gr}(k,n) = k(n-k),
+$$
+
+and the admissible partitions are
+
+$$
+\lambda = (\lambda_1,\ldots,\lambda_k), \qquad
+n-k \ge \lambda_1 \ge \cdots \ge \lambda_k \ge 0.
+$$
+
+The Schubert classes give a free integral basis:
+
+$$
+CH^\ast(\operatorname{Gr}(k,n), \mathbb{Z})
+  = \bigoplus_{\lambda \subseteq (n-k)^k} \mathbb{Z}\,\sigma_\lambda,
+  \qquad
+\operatorname{codim}(\sigma_\lambda) = |\lambda|
+  = \sum_i \lambda_i.
+$$
+
 The empty partition indexes the unit class:
 
-```text
-sigma_() = 1
-```
+$$
+\sigma_\varnothing = 1.
+$$
 
 The full rectangular partition
 
-```text
-(n-k, n-k, ..., n-k)
-```
+$$
+(n-k)^k = (n-k,\ldots,n-k)
+$$
 
 indexes the point class, also called the top Schubert class. Integration over
 the Grassmannian is therefore coefficient extraction against this basis element.
+For an expression
+
+$$
+\alpha = \sum_\lambda a_\lambda \sigma_\lambda,
+$$
+
+the integral is
+
+$$
+\int_{\operatorname{Gr}(k,n)} \alpha = a_{(n-k)^k}.
+$$
 
 ### Special Classes and Pieri
 
@@ -207,21 +241,35 @@ strip.
 In this crate, `multiply_by_special(r)` implements this rule directly. It uses
 the convention
 
-```text
-sigma_0 = 1
-sigma_r = 0 for r < 0 or r > n-k
-```
+$$
+\sigma_0 = 1,
+\qquad
+\sigma_r = 0 \quad \text{for } r < 0 \text{ or } r > n-k,
+$$
 
 which is the convention needed by the Giambelli determinant.
+
+Pieri's rule can be written as
+
+$$
+\sigma_\lambda \sigma_r
+  =
+  \sum_{\substack{\nu \supseteq \lambda \\
+                  |\nu|-|\lambda|=r \\
+                  \nu/\lambda\ \text{is a horizontal strip}}}
+  \sigma_\nu.
+$$
 
 ### Giambelli
 
 Giambelli's formula expresses a general Schubert class as a determinant in the
 special classes:
 
-```text
-sigma_lambda = det(sigma_{lambda_i + j - i})_{1 <= i,j <= k}
-```
+$$
+\sigma_\lambda
+  =
+  \det\!\left(\sigma_{\lambda_i + j - i}\right)_{1 \le i,j \le k}.
+$$
 
 with `sigma_0 = 1` and out-of-range `sigma_r = 0`. The implementation expands
 this determinant by permutations. Each determinant term is then evaluated by
@@ -235,14 +283,36 @@ Littlewood-Richardson tableau counting for general products.
 
 The product of two Schubert basis classes has the form
 
-```text
-sigma_lambda sigma_mu = sum_nu c^nu_{lambda,mu} sigma_nu
-```
+$$
+\sigma_\lambda \sigma_\mu
+  =
+  \sum_{\nu \subseteq (n-k)^k}
+  c^\nu_{\lambda,\mu}\,\sigma_\nu.
+$$
 
 where `nu` ranges over partitions inside the same `k x (n-k)` rectangle. The
 coefficient `c^nu_{lambda,mu}` is the Littlewood-Richardson coefficient, counted
 by semistandard tableaux of skew shape `nu / lambda` and content `mu` whose
 reading word is lattice/Yamanouchi.
+
+Equivalently,
+
+$$
+c^\nu_{\lambda,\mu}
+  =
+  \#\left\{
+    \text{LR tableaux of shape } \nu/\lambda
+    \text{ and content } \mu
+  \right\}.
+$$
+
+The degree condition is automatic:
+
+$$
+c^\nu_{\lambda,\mu} \ne 0
+  \implies
+  |\nu| = |\lambda| + |\mu|.
+$$
 
 This crate computes those coefficients directly. It fills cells in reading-word
 order, top row to bottom row and right to left within each row, while enforcing
@@ -253,26 +323,42 @@ semistandard row/column conditions and the lattice-prefix condition exactly.
 For `Gr(2,4)`, the indexing rectangle is `2 x 2`. The class `sigma_(1)` is the
 Plucker hyperplane class. Pieri gives:
 
-```text
-sigma_(1)^2 = sigma_(2) + sigma_(1,1)
-sigma_(1)^3 = 2 sigma_(2,1)
-sigma_(1)^4 = 2 sigma_(2,2)
-```
+$$
+\sigma_{(1)}^2 = \sigma_{(2)} + \sigma_{(1,1)},
+$$
+
+$$
+\sigma_{(1)}^3 = 2\sigma_{(2,1)},
+$$
+
+$$
+\sigma_{(1)}^4 = 2\sigma_{(2,2)}.
+$$
 
 Because `(2,2)` is the top class, `integral(sigma_(1)^4) = 2`.
 
 ### Poincare Duality
 
 In the Schubert basis, the Poincare dual of a partition `lambda` is the rotated
-complement of `lambda` inside the `k x (n-k)` rectangle. The tests verify this
-pairing in `Gr(2,4)` by checking that
+complement of `lambda` inside the `k x (n-k)` rectangle:
 
-```text
-integral(sigma_lambda sigma_mu)
-```
+$$
+\lambda^\vee_i = (n-k) - \lambda_{k+1-i}.
+$$
 
-is `1` exactly when `mu` is the rotated complement of `lambda`, and `0`
-otherwise.
+The Schubert pairing is
+
+$$
+\int_{\operatorname{Gr}(k,n)}
+  \sigma_\lambda \sigma_\mu
+  =
+  \begin{cases}
+    1, & \mu = \lambda^\vee, \\
+    0, & \mu \ne \lambda^\vee.
+  \end{cases}
+$$
+
+The tests verify this pairing in `Gr(2,4)`.
 
 ## Development
 
