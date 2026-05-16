@@ -11,7 +11,7 @@ This repository currently contains the `schubert-core` Rust crate. It computes
 in the Schubert basis of
 
 ```math
-CH^\ast(\operatorname{Gr}(k,n), \mathbb{Z}).
+CH^\ast(\mathrm{Gr}(k,n), \mathbb{Z}).
 ```
 
 where `Gr(k,n)` is the Grassmannian of `k`-dimensional subspaces of an
@@ -184,7 +184,7 @@ the Grassmannian. The codimension of `sigma_lambda` is the number of boxes
 In formulas, the ambient space has complex dimension
 
 ```math
-\dim_\mathbb{C} \operatorname{Gr}(k,n) = k(n-k),
+\dim_\mathbb{C} \mathrm{Gr}(k,n) = k(n-k),
 ```
 
 and the admissible partitions are
@@ -197,10 +197,10 @@ n-k \ge \lambda_1 \ge \cdots \ge \lambda_k \ge 0.
 The Schubert classes give a free integral basis:
 
 ```math
-CH^\ast(\operatorname{Gr}(k,n), \mathbb{Z})
+CH^\ast(\mathrm{Gr}(k,n), \mathbb{Z})
   = \bigoplus_{\lambda \subseteq (n-k)^k} \mathbb{Z}\,\sigma_\lambda,
   \qquad
-\operatorname{codim}(\sigma_\lambda) = |\lambda|
+\mathrm{codim}(\sigma_\lambda) = |\lambda|
   = \sum_i \lambda_i.
 ```
 
@@ -227,7 +227,7 @@ For an expression
 the integral is
 
 ```math
-\int_{\operatorname{Gr}(k,n)} \alpha = a_{(n-k)^k}.
+\int_{\mathrm{Gr}(k,n)} \alpha = a_{(n-k)^k}.
 ```
 
 ### Special Classes and Pieri
@@ -244,7 +244,7 @@ the convention
 ```math
 \sigma_0 = 1,
 \qquad
-\sigma_r = 0 \quad \text{for } r < 0 \text{ or } r > n-k,
+\sigma_r = 0 \quad \mathrm{for}\ r < 0\ \mathrm{or}\ r > n-k,
 ```
 
 which is the convention needed by the Giambelli determinant.
@@ -254,9 +254,7 @@ Pieri's rule can be written as
 ```math
 \sigma_\lambda \sigma_r
   =
-  \sum_{\substack{\nu \supseteq \lambda \\
-                  |\nu|-|\lambda|=r \\
-                  \nu/\lambda\ \text{is a horizontal strip}}}
+  \sum_{\nu:\ \nu \supseteq \lambda,\ |\nu|-|\lambda|=r,\ \nu/\lambda\ \mathrm{horizontal}}
   \sigma_\nu.
 ```
 
@@ -268,7 +266,7 @@ special classes:
 ```math
 \sigma_\lambda
   =
-  \det\!\left(\sigma_{\lambda_i + j - i}\right)_{1 \le i,j \le k}.
+  \det(\sigma_{\lambda_i + j - i})_{1 \le i,j \le k}.
 ```
 
 with `sigma_0 = 1` and out-of-range `sigma_r = 0`. The implementation expands
@@ -300,10 +298,8 @@ Equivalently,
 ```math
 c^\nu_{\lambda,\mu}
   =
-  \#\left\{
-    \text{LR tableaux of shape } \nu/\lambda
-    \text{ and content } \mu
-  \right\}.
+  \#\{\,\mathrm{LR\ tableaux\ of\ shape}\ \nu/\lambda
+    \ \mathrm{and\ content}\ \mu\,\}.
 ```
 
 The degree condition is automatic:
@@ -349,13 +345,11 @@ complement of `lambda` inside the `k x (n-k)` rectangle:
 The Schubert pairing is
 
 ```math
-\int_{\operatorname{Gr}(k,n)}
+\int_{\mathrm{Gr}(k,n)}
   \sigma_\lambda \sigma_\mu
   =
-  \begin{cases}
-    1, & \mu = \lambda^\vee, \\
-    0, & \mu \ne \lambda^\vee.
-  \end{cases}
+  1\ \mathrm{if}\ \mu = \lambda^\vee,\quad
+  0\ \mathrm{otherwise}.
 ```
 
 The tests verify this pairing in `Gr(2,4)`.
